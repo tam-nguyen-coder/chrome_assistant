@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Settings, Trash2, Sparkles, AlertCircle, MessageSquarePlus } from 'lucide-react';
+import { Settings, Trash2, Sparkles, AlertCircle, MessageSquarePlus, Zap, Code, Languages, Lightbulb } from 'lucide-react';
 import ChatMessage from './components/ChatMessage';
 import ChatInput from './components/ChatInput';
 import useStreaming from './hooks/useStreaming';
+
+const SUGGESTIONS = [
+  { icon: Lightbulb, text: 'Explain this concept clearly and concisely', label: 'Explain' },
+  { icon: Code, text: 'Write a code snippet to solve this problem', label: 'Code' },
+  { icon: Languages, text: 'Translate the following text', label: 'Translate' },
+  { icon: Zap, text: 'Summarize the key points of this topic', label: 'Summarize' },
+];
 
 export default function SidePanel() {
   const [messages, setMessages] = useState([]);
@@ -106,6 +113,13 @@ export default function SidePanel() {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <button
+            onClick={handleClear}
+            className="p-2 rounded-lg text-text-muted hover:text-accent-light hover:bg-accent/10 transition-all duration-200"
+            title="New chat"
+          >
+            <MessageSquarePlus className="w-4 h-4" />
+          </button>
           {messages.length > 0 && (
             <button
               onClick={handleClear}
@@ -144,14 +158,26 @@ export default function SidePanel() {
             </button>
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center px-6">
+          <div className="flex flex-col items-center justify-center h-full text-center px-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent/20 to-accent-light/20 border border-accent/20 flex items-center justify-center mb-4">
               <MessageSquarePlus className="w-6 h-6 text-accent-light" />
             </div>
             <h2 className="text-base font-semibold text-text-primary mb-1.5">Start a Conversation</h2>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              Type a message below or select text on any webpage and right-click to interact with AI.
+            <p className="text-sm text-text-secondary leading-relaxed mb-6">
+              Type a message or try a suggestion below.
             </p>
+            <div className="w-full flex flex-col gap-2">
+              {SUGGESTIONS.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleSend(s.text)}
+                  className="suggestion-chip"
+                >
+                  <s.icon className="w-4 h-4 text-accent-light flex-shrink-0" />
+                  <span>{s.text}</span>
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           messages.map((msg, idx) => (

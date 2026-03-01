@@ -162,3 +162,109 @@ body {
   color: var(--color-accent);
   margin-left: 2px;
 }
+
+/* Typing indicator */
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+}
+.typing-indicator span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent-light);
+  animation: dotBounce 1.4s ease-in-out infinite;
+}
+.typing-indicator span:nth-child(2) { animation-delay: 0.16s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.32s; }
+
+/* Suggestion chips */
+.suggestion-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  line-height: 1.4;
+}
+.suggestion-chip:hover {
+  background: rgba(124, 92, 252, 0.12);
+  border-color: var(--color-border-active);
+  color: var(--color-text-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.suggestion-chip:active {
+  transform: translateY(0);
+}
+
+/* Markdown tables */
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.7em 0;
+  font-size: 13px;
+}
+.markdown-body thead th {
+  background: rgba(124, 92, 252, 0.12);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 2px solid var(--color-border-active);
+}
+.markdown-body tbody td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+.markdown-body tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+.markdown-body tbody tr:hover {
+  background: rgba(124, 92, 252, 0.06);
+}
+
+/* PrismJS dark theme tokens */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata { color: #6b6980; font-style: italic; }
+.token.punctuation { color: #9896a8; }
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted { color: #f87171; }
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted { color: #34d399; }
+.token.operator,
+.token.entity,
+.token.url { color: #fbbf24; }
+.token.atrule,
+.token.attr-value,
+.token.keyword { color: #9b7dff; }
+.token.function,
+.token.class-name { color: #60a5fa; }
+.token.regex,
+.token.important,
+.token.variable { color: #fbbf24; }

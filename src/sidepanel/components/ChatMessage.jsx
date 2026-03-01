@@ -1,11 +1,40 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-css';
+import 'prismjs/components/prism-jsx';
+import 'prismjs/components/prism-tsx';
+import 'prismjs/components/prism-sql';
+import 'prismjs/components/prism-yaml';
+import 'prismjs/components/prism-markdown';
 import { Copy, Check, User, Sparkles } from 'lucide-react';
+
+function TypingIndicator() {
+  return (
+    <div className="typing-indicator">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  );
+}
 
 function CodeBlock({ children, className }) {
   const [copied, setCopied] = useState(false);
+  const codeRef = useRef(null);
   const lang = className?.replace('language-', '') || '';
+
+  useEffect(() => {
+    if (codeRef.current && lang) {
+      Prism.highlightElement(codeRef.current);
+    }
+  }, [children, lang]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
@@ -22,7 +51,9 @@ function CodeBlock({ children, className }) {
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
-      <code className={className}>{children}</code>
+      <code ref={codeRef} className={className}>
+        {children}
+      </code>
     </div>
   );
 }
@@ -50,6 +81,8 @@ export default function ChatMessage({ message, isStreaming }) {
     },
   }), []);
 
+  const showTypingIndicator = isStreaming && !message.content;
+
   return (
     <div className={`flex gap-3 animate-fade-in-up ${isUser ? 'flex-row-reverse' : ''}`}>
       {/* Avatar */}
@@ -70,6 +103,8 @@ export default function ChatMessage({ message, isStreaming }) {
         }`}>
           {isUser ? (
             <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+          ) : showTypingIndicator ? (
+            <TypingIndicator />
           ) : (
             <div className={`markdown-body ${isStreaming ? 'streaming-cursor' : ''}`}>
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
