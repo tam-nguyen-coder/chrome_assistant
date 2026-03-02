@@ -17,7 +17,9 @@ export default function useStreaming() {
     abortRef.current = new AbortController();
 
     try {
-      const isAnthropic = config.baseUrl.includes('anthropic');
+      // Use provider field for detection, fallback to URL check for backward compatibility
+      const isAnthropic = config.provider === 'anthropic' || 
+        (!config.provider && config.baseUrl.includes('anthropic'));
       const url = isAnthropic
         ? `${config.baseUrl.replace(/\/$/, '')}/v1/messages`
         : `${config.baseUrl.replace(/\/$/, '')}/v1/chat/completions`;

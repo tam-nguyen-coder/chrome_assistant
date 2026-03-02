@@ -1,10 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Key, Globe, Cpu, CheckCircle2, XCircle, Loader2, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Settings, Key, Globe, Cpu, CheckCircle2, XCircle, Loader2, Eye, EyeOff, Sparkles, ChevronDown } from 'lucide-react';
+
+// Provider presets
+const PROVIDERS = {
+  anthropic: {
+    id: 'anthropic',
+    name: 'Anthropic',
+    baseUrl: 'https://api.anthropic.com',
+    models: [
+      { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4' },
+      { id: 'claude-opus-4-20250514', name: 'Claude Opus 4' },
+      { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet' },
+      { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
+    ],
+    defaultModel: 'claude-sonnet-4-20250514',
+  },
+  blackbox: {
+    id: 'blackbox',
+    name: 'Blackbox AI',
+    baseUrl: 'https://api.blackbox.ai',
+    models: [
+      { id: 'blackboxai/minimax/minimax-m2.5', name: 'MiniMax M2.5' },
+      { id: 'blackboxai/moonshotai/kimi-k2.5', name: 'Moonshot Kimi K2.5' },
+    ],
+    defaultModel: 'blackboxai/minimax/minimax-m2.5',
+  },
+  custom: {
+    id: 'custom',
+    name: 'Custom',
+    baseUrl: '',
+    models: [],
+    defaultModel: '',
+  },
+};
 
 const DEFAULT_CONFIG = {
-  baseUrl: 'https://api.anthropic.com',
+  provider: 'anthropic',
+  baseUrl: PROVIDERS.anthropic.baseUrl,
   apiKey: '',
-  model: 'claude-sonnet-4-20250514',
+  model: PROVIDERS.anthropic.defaultModel,
 };
 
 export default function Options() {
@@ -13,14 +47,61 @@ export default function Options() {
   const [saved, setSaved] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
+  const [showProviderDropdown, setShowProviderDropdown] = useState(false);
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const [customModel, setCustomModel] = useState('');
+
+  // Detect provider from baseUrl for backward compatibility
+  const detectProvider = (baseUrl) => {
+    if (baseUrl.includes('anthropic.com')) return 'anthropic';
+    if (baseUrl.includes('blackbox.ai')) return 'blackbox';
+    return 'custom';
+  };
 
   useEffect(() => {
     chrome.storage.local.get('llmConfig', (result) => {
       if (result.llmConfig) {
-        setConfig({ ...DEFAULT_CONFIG, ...result.llmConfig });
+        const merged = { ...DEFAULT_CONFIG, ...result.llmConfig };
+        // Backward compatibility: detect provider if not set
+        if (!merged.provider) {
+          merged.provider = detectProvider(merged.baseUrl);
+        }
+        setConfig(merged);
+        if (merged.provider === 'custom' && merged.model) {
+          setCustomModel(merged.model);
+        }
       }
     });
   }, []);
+
+  const handleProviderChange = (providerId) => {
+    const provider = PROVIDERS[providerId];
+    setConfig({
+      ...config,
+      provider: providerId,
+      baseUrl: provider.baseUrl,
+      model: provider.defaultModel,
+    });
+    setShowProviderDropdown(false);
+    setTestResult(null);
+  };
+
+  const handleModelChange = (modelId) => {
+    setConfig({ ...config, model: modelId });
+    setShowModelDropdown(false);
+    setTestResult(null);
+  };
+
+  const handleCustomModelChange = (e) => {
+    const model = e.target.value;
+    setCustomModel(model);
+    setConfig({ ...config, model });
+  };
+
+  const handleCustomBaseUrlChange = (e) => {
+    setConfig({ ...config, baseUrl: e.target.value });
+    setTestResult(null);
+  };
 
   const handleSave = () => {
     chrome.storage.local.set({ llmConfig: config }, () => {
@@ -33,7 +114,7 @@ export default function Options() {
     setTesting(true);
     setTestResult(null);
     try {
-      const isAnthropic = config.baseUrl.includes('anthropic');
+      const isAnthropic = config.provider === 'anthropic' || config.baseUrl.includes('anthropic');
       const url = isAnthropic
         ? `${config.baseUrl.replace(/\/$/, '')}/v1/messages`
         : `${config.baseUrl.replace(/\/$/, '')}/v1/chat/completions`;
@@ -77,6 +158,13 @@ export default function Options() {
   };
 
   const inputClass = "w-full px-4 py-3 bg-bg-tertiary/60 border border-border rounded-xl text-text-primary placeholder-text-muted focus:outline-none focus:border-border-active focus:ring-2 focus:ring-accent-glow transition-all duration-200 text-sm";
+  const selectClass = "w-full px-4 py-3 bg-bg-tertiary/60 border border-border rounded-xl text-text-primary focus:outline-none focus:border-border-active focus:ring-2 focus:ring-accent-glow transition-all duration-200 text-sm cursor-pointer flex items-center justify-between";
+  const dropdownClass = "absolute top-full left-0 right-0 mt-1 bg-bg-secondary border border-border rounded-xl shadow-xl z-10 overflow-hidden animate-fade-in-up";
+  const dropdownItemClass = "px-4 py-2.5 text-sm text-text-secondary hover:bg-accent/10 hover:text-text-primary cursor-pointer transition-colors";
+  const dropdownItemActiveClass = "px-4 py-2.5 text-sm text-accent-light bg-accent/10 cursor-pointer";
+
+  const currentProvider = PROVIDERS[config.provider] || PROVIDERS.custom;
+  const isCustomProvider = config.provider === 'custom';
 
   return (
     <div className="min-h-screen bg-bg-primary flex items-center justify-center p-6">
@@ -93,19 +181,50 @@ export default function Options() {
         {/* Config Card */}
         <div className="bg-bg-secondary/80 backdrop-blur-xl border border-border rounded-2xl p-6 shadow-2xl">
           <div className="space-y-5">
-            {/* Base URL */}
+            {/* Provider Selection */}
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-text-secondary mb-2">
-                <Globe className="w-4 h-4" /> Base URL
+                <Cpu className="w-4 h-4" /> Provider
               </label>
-              <input
-                type="url"
-                value={config.baseUrl}
-                onChange={(e) => setConfig({ ...config, baseUrl: e.target.value })}
-                placeholder="https://api.anthropic.com"
-                className={inputClass}
-              />
+              <div className="relative">
+                <button
+                  onClick={() => setShowProviderDropdown(!showProviderDropdown)}
+                  className={selectClass}
+                >
+                  <span>{currentProvider.name}</span>
+                  <ChevronDown className={`w-4 h-4 text-text-muted transition-transform ${showProviderDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                {showProviderDropdown && (
+                  <div className={dropdownClass}>
+                    {Object.values(PROVIDERS).map((provider) => (
+                      <div
+                        key={provider.id}
+                        className={config.provider === provider.id ? dropdownItemActiveClass : dropdownItemClass}
+                        onClick={() => handleProviderChange(provider.id)}
+                      >
+                        {provider.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Base URL (only for Custom provider) */}
+            {isCustomProvider && (
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-text-secondary mb-2">
+                  <Globe className="w-4 h-4" /> Base URL
+                </label>
+                <input
+                  type="url"
+                  value={config.baseUrl}
+                  onChange={handleCustomBaseUrlChange}
+                  placeholder="https://api.example.com"
+                  className={inputClass}
+                />
+              </div>
+            )}
 
             {/* API Key */}
             <div>
@@ -117,7 +236,7 @@ export default function Options() {
                   type={showKey ? 'text' : 'password'}
                   value={config.apiKey}
                   onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
-                  placeholder="sk-ant-api03-..."
+                  placeholder={config.provider === 'anthropic' ? 'sk-ant-api03-...' : 'Enter your API key'}
                   className={`${inputClass} pr-12`}
                 />
                 <button
@@ -129,18 +248,45 @@ export default function Options() {
               </div>
             </div>
 
-            {/* Model Name */}
+            {/* Model Selection */}
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-text-secondary mb-2">
-                <Cpu className="w-4 h-4" /> Model Name
+                <Cpu className="w-4 h-4" /> Model
               </label>
-              <input
-                type="text"
-                value={config.model}
-                onChange={(e) => setConfig({ ...config, model: e.target.value })}
-                placeholder="claude-sonnet-4-20250514"
-                className={inputClass}
-              />
+              {isCustomProvider ? (
+                <input
+                  type="text"
+                  value={customModel}
+                  onChange={handleCustomModelChange}
+                  placeholder="model-name"
+                  className={inputClass}
+                />
+              ) : (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowModelDropdown(!showModelDropdown)}
+                    className={selectClass}
+                  >
+                    <span>
+                      {currentProvider.models.find(m => m.id === config.model)?.name || config.model}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-text-muted transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                  {showModelDropdown && currentProvider.models.length > 0 && (
+                    <div className={dropdownClass}>
+                      {currentProvider.models.map((model) => (
+                        <div
+                          key={model.id}
+                          className={config.model === model.id ? dropdownItemActiveClass : dropdownItemClass}
+                          onClick={() => handleModelChange(model.id)}
+                        >
+                          {model.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -160,7 +306,7 @@ export default function Options() {
           <div className="flex gap-3 mt-6">
             <button
               onClick={handleTestConnection}
-              disabled={testing || !config.apiKey}
+              disabled={testing || !config.apiKey || !config.baseUrl}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-bg-tertiary border border-border rounded-xl text-text-secondary hover:text-text-primary hover:border-border-active transition-all duration-200 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Settings className="w-4 h-4" />}
