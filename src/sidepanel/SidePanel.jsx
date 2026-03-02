@@ -47,6 +47,36 @@ export default function SidePanel() {
     return () => chrome.runtime.onMessage.removeListener(listener);
   }, [config]);
 
+  // Check for pending actions from text selection popup (stored in chrome.storage)
+  useEffect(() => {
+    if (!config) return; // Wait until config is loaded before consuming actions
+
+    const consumePendingAction = () => {
+      chrome.storage.local.get('pendingAction', (result) => {
+        if (result.pendingAction?.prompt) {
+          // Only process recent actions (within 10 seconds)
+          const age = Date.now() - (result.pendingAction.timestamp || 0);
+          if (age < 10000) {
+            handleSend(result.pendingAction.prompt);
+          }
+          chrome.storage.local.remove('pendingAction');
+        }
+      });
+    };
+
+    // Check on mount (or when config just loaded)
+    consumePendingAction();
+
+    // Listen for new pending actions
+    const storageListener = (changes) => {
+      if (changes.pendingAction?.newValue?.prompt) {
+        consumePendingAction();
+      }
+    };
+    chrome.storage.onChanged.addListener(storageListener);
+    return () => chrome.storage.onChanged.removeListener(storageListener);
+  }, [config]);
+
   // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

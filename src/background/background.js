@@ -40,6 +40,27 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }, 500);
 });
 
+// Handle popup actions from content script
+chrome.runtime.onMessage.addListener((message, sender) => {
+  if (message.type === 'POPUP_ACTION' && sender.tab) {
+    const actionData = {
+      type: 'CONTEXT_ACTION',
+      prompt: message.prompt,
+      action: message.action,
+      selectedText: message.selectedText,
+      timestamp: Date.now(),
+    };
+
+    // Store pending action in storage (side panel picks it up via onChanged listener)
+    chrome.storage.local.set({ pendingAction: actionData });
+
+    // Try to open side panel (may fail without user gesture context)
+    chrome.sidePanel.open({ tabId: sender.tab.id }).catch(() => {
+      // Side panel may already be open — that's OK, storage listener handles it
+    });
+  }
+});
+
 // Open side panel when clicking the extension icon
 chrome.action.onClicked.addListener((tab) => {
   chrome.sidePanel.open({ tabId: tab.id });
