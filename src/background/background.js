@@ -42,7 +42,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
 // Handle popup actions from content script
 chrome.runtime.onMessage.addListener((message, sender) => {
-  if (message.type === 'POPUP_ACTION' && sender.tab) {
+  if (message.type === 'POPUP_ACTION') {
     const actionData = {
       type: 'CONTEXT_ACTION',
       prompt: message.prompt,
@@ -54,10 +54,12 @@ chrome.runtime.onMessage.addListener((message, sender) => {
     // Store pending action in storage (side panel picks it up via onChanged listener)
     chrome.storage.local.set({ pendingAction: actionData });
 
-    // Try to open side panel (may fail without user gesture context)
-    chrome.sidePanel.open({ tabId: sender.tab.id }).catch(() => {
-      // Side panel may already be open — that's OK, storage listener handles it
-    });
+    // Try to open side panel if we have a tab
+    if (sender?.tab?.id) {
+      chrome.sidePanel.open({ tabId: sender.tab.id }).catch(() => {
+        // Side panel may already be open — that's OK, storage listener handles it
+      });
+    }
   }
 });
 

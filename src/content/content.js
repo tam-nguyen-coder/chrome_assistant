@@ -1,6 +1,35 @@
 // Content Script — Text Selection Popup (eJoy-style)
 // Injects a floating popup via Shadow DOM when user selects text
 
+// Translation actions config
+const AI_ACTIONS = [
+  { id: 'explain', label: '💡 Explain', prompt: 'Please explain the following text clearly and concisely:\n\n' },
+  { id: 'summarize', label: '📝 Summarize', prompt: 'Please provide a concise summary of the following text:\n\n' },
+  { id: 'rewrite', label: '✍️ Rewrite', prompt: 'Please rewrite the following text to improve clarity and readability:\n\n' },
+  { id: 'translate', label: '🌐 Translate', prompt: 'Please translate the following text to English (or if it is already in English, translate to Vietnamese):\n\n' },
+];
+
+// Fallback: directly trigger action when chrome.runtime.sendMessage fails
+function triggerActionDirectly(actionId, text) {
+  console.log('[LLM] triggerActionDirectly called:', actionId, text);
+  const action = AI_ACTIONS.find(a => a.id === actionId);
+  if (!action || !text) return;
+
+  const prompt = action.prompt + `"${text}"`;
+  const actionData = {
+    type: 'CONTEXT_ACTION',
+    prompt,
+    action: actionId,
+    selectedText: text,
+    timestamp: Date.now(),
+  };
+
+  // Store directly in storage (side panel picks it up via onChanged listener)
+  chrome.storage.local.set({ pendingAction: actionData }, () => {
+    console.log('[LLM] pendingAction stored:', actionData.prompt?.substring(0, 50));
+  });
+}
+
 (() => {
   // ── AI Actions (same as background.js context menu actions) ──
   const AI_ACTIONS = [
@@ -273,15 +302,27 @@
 
   // ── Send action to background ──
   function sendAction(actionId, text) {
+    console.log('[LLM] sendAction called:', actionId, text?.substring(0, 30));
     const action = AI_ACTIONS.find((a) => a.id === actionId);
     if (!action || !text) return;
 
-    chrome.runtime.sendMessage({
+    const prompt = action.prompt + `"${text}"`;
+    const message = {
       type: 'POPUP_ACTION',
-      prompt: action.prompt + `"${text}"`,
+      prompt: prompt,
       action: actionId,
       selectedText: text,
-    });
+    };
+
+    // Always store directly as fallback (works when sendMessage fails)
+    triggerActionDirectly(actionId, text);
+
+    // Also try sending to background
+    try {
+      chrome.runtime.sendMessage(message);
+    } catch (e) {
+      // sendMessage failed, but we already stored directly
+    }
   }
 
   // ── Selection listener ──
