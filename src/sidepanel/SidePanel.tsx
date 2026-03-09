@@ -16,6 +16,7 @@ export default function SidePanel() {
   const [config, setConfig] = useState<LLMConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastProcessedTimestampRef = useRef<number>(0);
   const { sendMessage, isStreaming, stopStreaming } = useStreaming();
 
   // Load config
@@ -36,9 +37,9 @@ export default function SidePanel() {
     });
   }, []);
 
-  // Listen for context menu messages
+  // Listen for context menu messages (from background on right-click context menu)
   useEffect(() => {
-    const listener = (message: { type: string; prompt: string }) => {
+    const listener = (message: { type: string; prompt: string; timestamp?: number }) => {
       if (message.type === 'CONTEXT_ACTION') {
         handleSend(message.prompt);
       }
@@ -54,9 +55,12 @@ export default function SidePanel() {
     const consumePendingAction = () => {
       chrome.storage.local.get('pendingAction', (result: StorageResult) => {
         if (result.pendingAction?.prompt) {
-          // Only process recent actions (within 10 seconds)
-          const age = Date.now() - (result.pendingAction.timestamp || 0);
-          if (age < 10000) {
+          const timestamp = result.pendingAction.timestamp || 0;
+          const age = Date.now() - timestamp;
+
+          // Only process recent actions (within 10 seconds) and not already processed
+          if (age < 10000 && timestamp > lastProcessedTimestampRef.current) {
+            lastProcessedTimestampRef.current = timestamp;
             handleSend(result.pendingAction.prompt);
           }
           chrome.storage.local.remove('pendingAction');

@@ -21,11 +21,11 @@ The system SHALL display a small floating popup near the user's text selection o
 ---
 
 ### Requirement: Quick Translate Action
-The system SHALL provide a one-click translate button on the floating popup.
+The system SHALL provide a one-click translate button on the floating popup that shows the translation result inline.
 
-#### Scenario: Quick translate sends text to side panel
+#### Scenario: Quick translate shows inline tooltip
 - **WHEN** the user selects text and clicks the translate icon on the popup
-- **THEN** the side panel opens and the selected text is sent for translation
+- **THEN** the popup bar is hidden and an inline tooltip appears near the selected text showing the translation result streamed from the LLM API
 
 #### Scenario: Quick translate uses existing translate prompt
 - **WHEN** the translate action is triggered
