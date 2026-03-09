@@ -1,7 +1,7 @@
 // Content Script — Text Selection Popup (eJoy-style)
 // Injects a floating popup via Shadow DOM when user selects text
 
-// Translation actions config
+// AI Actions config (inlined to avoid module import issues in content scripts)
 const AI_ACTIONS = [
   { id: 'explain', label: '💡 Explain', prompt: 'Please explain the following text clearly and concisely:\n\n' },
   { id: 'summarize', label: '📝 Summarize', prompt: 'Please provide a concise summary of the following text:\n\n' },
@@ -10,14 +10,14 @@ const AI_ACTIONS = [
 ];
 
 // Fallback: directly trigger action when chrome.runtime.sendMessage fails
-function triggerActionDirectly(actionId, text) {
+function triggerActionDirectly(actionId: string, text: string) {
   console.log('[LLM] triggerActionDirectly called:', actionId, text);
   const action = AI_ACTIONS.find(a => a.id === actionId);
   if (!action || !text) return;
 
   const prompt = action.prompt + `"${text}"`;
   const actionData = {
-    type: 'CONTEXT_ACTION',
+    type: 'CONTEXT_ACTION' as const,
     prompt,
     action: actionId,
     selectedText: text,
@@ -31,14 +31,6 @@ function triggerActionDirectly(actionId, text) {
 }
 
 (() => {
-  // ── AI Actions (same as background.js context menu actions) ──
-  const AI_ACTIONS = [
-    { id: 'explain', label: '💡 Explain', prompt: 'Please explain the following text clearly and concisely:\n\n' },
-    { id: 'summarize', label: '📝 Summarize', prompt: 'Please provide a concise summary of the following text:\n\n' },
-    { id: 'rewrite', label: '✍️ Rewrite', prompt: 'Please rewrite the following text to improve clarity and readability:\n\n' },
-    { id: 'translate', label: '🌐 Translate', prompt: 'Please translate the following text to English (or if it is already in English, translate to Vietnamese):\n\n' },
-  ];
-
   // ── Inline CSS for Shadow DOM ──
   const POPUP_CSS = `
     :host {
@@ -74,10 +66,10 @@ function triggerActionDirectly(actionId, text) {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
       border: none;
-      border-radius: 9px;
+      border-radius: 10px;
       cursor: pointer;
       transition: all 0.15s ease;
       background: transparent;
@@ -98,7 +90,7 @@ function triggerActionDirectly(actionId, text) {
     }
     .llm-divider {
       width: 1px;
-      height: 20px;
+      height: 22px;
       background: rgba(255,255,255,0.08);
       margin: 0 1px;
     }
@@ -110,40 +102,41 @@ function triggerActionDirectly(actionId, text) {
     }
     .llm-dropdown {
       position: absolute;
-      top: calc(100% + 6px);
+      top: calc(100% + 8px);
       right: 0;
-      min-width: 180px;
+      min-width: 200px;
       background: #1a1a24;
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 12px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.5);
-      padding: 4px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+      padding: 6px;
       animation: popIn 0.15s ease-out;
       pointer-events: auto;
+      z-index: 100;
     }
     .llm-dropdown-item {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       width: 100%;
-      padding: 9px 12px;
+      padding: 10px 14px;
       border: none;
       border-radius: 8px;
       background: transparent;
       color: #9896a8;
-      font-size: 13px;
+      font-size: 14px;
       cursor: pointer;
       transition: all 0.15s ease;
       text-align: left;
       white-space: nowrap;
     }
     .llm-dropdown-item:hover {
-      background: rgba(124,92,252,0.12);
+      background: rgba(124,92,252,0.15);
       color: #e8e6f0;
     }
     .llm-dropdown-item span.emoji {
-      font-size: 15px;
-      width: 20px;
+      font-size: 16px;
+      width: 22px;
       text-align: center;
     }
   `;
@@ -153,10 +146,10 @@ function triggerActionDirectly(actionId, text) {
   const CHEVRON_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`;
 
   // ── State ──
-  let hostEl = null;
-  let shadowRoot = null;
-  let popupEl = null;
-  let dropdownEl = null;
+  let hostEl: HTMLDivElement | null = null;
+  let shadowRoot: ShadowRoot | null = null;
+  let popupEl: HTMLDivElement | null = null;
+  let dropdownEl: HTMLDivElement | null = null;
   let isDropdownOpen = false;
   let selectedText = '';
 
@@ -175,7 +168,7 @@ function triggerActionDirectly(actionId, text) {
   }
 
   // ── Show popup near selection ──
-  function showPopup(rect, text) {
+  function showPopup(rect: DOMRect, text: string) {
     hidePopup();
     selectedText = text;
 
@@ -211,14 +204,15 @@ function triggerActionDirectly(actionId, text) {
     popupEl.appendChild(divider);
     popupEl.appendChild(expandBtn);
 
-    shadowRoot.appendChild(popupEl);
+    shadowRoot?.appendChild(popupEl);
 
     // Position popup
     positionPopup(rect);
   }
 
   // ── Position popup near selection end ──
-  function positionPopup(rect) {
+  function positionPopup(rect: DOMRect) {
+    if (!popupEl) return;
     const popupRect = popupEl.getBoundingClientRect();
     const margin = 8;
 
@@ -240,7 +234,7 @@ function triggerActionDirectly(actionId, text) {
   }
 
   // ── Toggle dropdown ──
-  function toggleDropdown(expandBtn) {
+  function toggleDropdown(expandBtn: HTMLButtonElement) {
     if (isDropdownOpen) {
       closeDropdown();
       expandBtn.classList.remove('open');
@@ -256,14 +250,14 @@ function triggerActionDirectly(actionId, text) {
     AI_ACTIONS.forEach((action) => {
       const item = document.createElement('button');
       item.className = 'llm-dropdown-item';
-      
+
       const emoji = document.createElement('span');
       emoji.className = 'emoji';
       emoji.textContent = action.label.split(' ')[0]; // emoji part
-      
+
       const label = document.createElement('span');
       label.textContent = action.label.split(' ').slice(1).join(' '); // text part
-      
+
       item.appendChild(emoji);
       item.appendChild(label);
 
@@ -272,10 +266,10 @@ function triggerActionDirectly(actionId, text) {
         sendAction(action.id, selectedText);
         hidePopup();
       });
-      dropdownEl.appendChild(item);
+      dropdownEl?.appendChild(item);
     });
 
-    popupEl.appendChild(dropdownEl);
+    popupEl?.appendChild(dropdownEl);
   }
 
   // ── Close dropdown ──
@@ -301,14 +295,14 @@ function triggerActionDirectly(actionId, text) {
   }
 
   // ── Send action to background ──
-  function sendAction(actionId, text) {
+  function sendAction(actionId: string, text: string) {
     console.log('[LLM] sendAction called:', actionId, text?.substring(0, 30));
     const action = AI_ACTIONS.find((a) => a.id === actionId);
     if (!action || !text) return;
 
     const prompt = action.prompt + `"${text}"`;
     const message = {
-      type: 'POPUP_ACTION',
+      type: 'POPUP_ACTION' as const,
       prompt: prompt,
       action: actionId,
       selectedText: text,
@@ -320,39 +314,15 @@ function triggerActionDirectly(actionId, text) {
     // Also try sending to background
     try {
       chrome.runtime.sendMessage(message);
-    } catch (e) {
+    } catch {
       // sendMessage failed, but we already stored directly
     }
   }
 
-  // ── Selection listener ──
-  let selectionTimeout = null;
-
-  function handleSelectionChange() {
-    clearTimeout(selectionTimeout);
-    selectionTimeout = setTimeout(() => {
-      const selection = window.getSelection();
-      const text = selection?.toString().trim();
-
-      if (!text || text.length < 2) {
-        // Don't hide immediately on selectionchange — only if it's truly empty
-        return;
-      }
-
-      try {
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-        if (rect.width === 0 && rect.height === 0) return;
-        showPopup(rect, text);
-      } catch {
-        // Selection may be invalid
-      }
-    }, 300);
-  }
-
-  function handleMouseUp(e) {
+  // ── Mouse handler ──
+  function handleMouseUp(e: MouseEvent) {
     // Ignore clicks inside our popup
-    if (hostEl && hostEl.contains(e.target)) return;
+    if (hostEl && hostEl.contains(e.target as Node)) return;
     if (e.target === hostEl) return;
 
     // Check shadow DOM — if click was in our shadow root, ignore
@@ -369,7 +339,7 @@ function triggerActionDirectly(actionId, text) {
       }
 
       try {
-        const range = selection.getRangeAt(0);
+        const range = selection!.getRangeAt(0);
         const rect = range.getBoundingClientRect();
         if (rect.width === 0 && rect.height === 0) return;
         showPopup(rect, text);
@@ -380,7 +350,7 @@ function triggerActionDirectly(actionId, text) {
   }
 
   // ── Auto-dismiss listeners ──
-  function handleClickOutside(e) {
+  function handleClickOutside(e: MouseEvent) {
     if (!popupEl) return;
     const path = e.composedPath();
     if (path.some((el) => el === hostEl)) return;
@@ -397,14 +367,14 @@ function triggerActionDirectly(actionId, text) {
     hidePopup();
   }
 
-  function handleKeyDown(e) {
+  function handleKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       hidePopup();
     }
   }
 
   // ── Listen for messages from background ──
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === 'GET_SELECTION') {
       const selection = window.getSelection()?.toString() || '';
       sendResponse({ text: selection });

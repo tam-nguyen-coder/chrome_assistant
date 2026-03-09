@@ -36,7 +36,7 @@ body {
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--color-text-muted); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-text-secondary); }
@@ -68,14 +68,14 @@ body {
 
 /* Markdown styles */
 .markdown-body {
-  line-height: 1.65;
+  line-height: 1.7;
   font-size: 14px;
 }
-.markdown-body p { margin-bottom: 0.6em; }
+.markdown-body p { margin-bottom: 0.75em; }
 .markdown-body p:last-child { margin-bottom: 0; }
 .markdown-body h1, .markdown-body h2, .markdown-body h3 {
   font-weight: 700;
-  margin: 1em 0 0.5em;
+  margin: 1.2em 0 0.6em;
   color: var(--color-text-primary);
 }
 .markdown-body h1 { font-size: 1.3em; }
@@ -83,9 +83,9 @@ body {
 .markdown-body h3 { font-size: 1.05em; }
 .markdown-body ul, .markdown-body ol {
   padding-left: 1.5em;
-  margin-bottom: 0.6em;
+  margin-bottom: 0.75em;
 }
-.markdown-body li { margin-bottom: 0.25em; }
+.markdown-body li { margin-bottom: 0.3em; }
 .markdown-body a {
   color: var(--color-accent-light);
   text-decoration: underline;
@@ -93,7 +93,7 @@ body {
 .markdown-body blockquote {
   border-left: 3px solid var(--color-accent);
   padding-left: 1em;
-  margin: 0.5em 0;
+  margin: 0.75em 0;
   color: var(--color-text-secondary);
 }
 .markdown-body strong { color: var(--color-text-primary); }
@@ -102,7 +102,7 @@ body {
 .markdown-body code:not(pre code) {
   background: rgba(124, 92, 252, 0.15);
   color: var(--color-accent-light);
-  padding: 0.15em 0.4em;
+  padding: 0.15em 0.45em;
   border-radius: 4px;
   font-size: 0.88em;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
@@ -112,9 +112,9 @@ body {
 .markdown-body pre {
   background: #12121c !important;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 0;
-  margin: 0.7em 0;
+  margin: 0.8em 0;
   overflow: hidden;
 }
 .markdown-body pre code {
@@ -122,7 +122,7 @@ body {
   padding: 1em 1.2em;
   overflow-x: auto;
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.6;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
@@ -131,7 +131,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 12px;
+  padding: 8px 14px;
   background: rgba(255, 255, 255, 0.03);
   border-bottom: 1px solid var(--color-border);
   font-size: 12px;
@@ -146,8 +146,8 @@ body {
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
   transition: all 0.2s;
 }
 .code-block-header button:hover {
@@ -171,12 +171,12 @@ body {
 .typing-indicator {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   padding: 4px 0;
 }
 .typing-indicator span {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--color-accent-light);
   animation: dotBounce 1.4s ease-in-out infinite;
@@ -188,24 +188,24 @@ body {
 .suggestion-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
+  gap: 8px;
+  padding: 12px 18px;
   background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border-radius: 12px;
   color: var(--color-text-secondary);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 .suggestion-chip:hover {
   background: rgba(124, 92, 252, 0.12);
   border-color: var(--color-border-active);
   color: var(--color-text-primary);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
 }
 .suggestion-chip:active {
   transform: translateY(0);
@@ -215,7 +215,7 @@ body {
 .markdown-body table {
   width: 100%;
   border-collapse: collapse;
-  margin: 0.7em 0;
+  margin: 0.8em 0;
   font-size: 13px;
 }
 .markdown-body thead th {
@@ -223,11 +223,11 @@ body {
   color: var(--color-text-primary);
   font-weight: 600;
   text-align: left;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-bottom: 2px solid var(--color-border-active);
 }
 .markdown-body tbody td {
-  padding: 7px 12px;
+  padding: 8px 14px;
   border-bottom: 1px solid var(--color-border);
   color: var(--color-text-secondary);
 }

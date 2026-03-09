@@ -1,58 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Key, Globe, Cpu, CheckCircle2, XCircle, Loader2, Eye, EyeOff, Sparkles, ChevronDown } from 'lucide-react';
+import { PROVIDERS } from '@/shared/constants';
+import type { LLMConfig, ProviderId, ProviderPreset } from '@/types';
 
-// Provider presets
-const PROVIDERS = {
-  anthropic: {
-    id: 'anthropic',
-    name: 'Anthropic',
-    baseUrl: 'https://api.anthropic.com',
-    models: [
-      { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4' },
-      { id: 'claude-opus-4-20250514', name: 'Claude Opus 4' },
-      { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet' },
-      { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
-    ],
-    defaultModel: 'claude-sonnet-4-20250514',
-  },
-  blackbox: {
-    id: 'blackbox',
-    name: 'Blackbox AI',
-    baseUrl: 'https://api.blackbox.ai',
-    models: [
-      { id: 'blackboxai/minimax/minimax-m2.5', name: 'MiniMax M2.5' },
-      { id: 'blackboxai/moonshotai/kimi-k2.5', name: 'Moonshot Kimi K2.5' },
-    ],
-    defaultModel: 'blackboxai/minimax/minimax-m2.5',
-  },
-  custom: {
-    id: 'custom',
-    name: 'Custom',
-    baseUrl: '',
-    models: [],
-    defaultModel: '',
-  },
-};
-
-const DEFAULT_CONFIG = {
+const DEFAULT_CONFIG: LLMConfig = {
   provider: 'anthropic',
   baseUrl: PROVIDERS.anthropic.baseUrl,
   apiKey: '',
   model: PROVIDERS.anthropic.defaultModel,
 };
 
+interface TestResult {
+  success: boolean;
+  message: string;
+}
+
 export default function Options() {
-  const [config, setConfig] = useState(DEFAULT_CONFIG);
+  const [config, setConfig] = useState<LLMConfig>(DEFAULT_CONFIG);
   const [showKey, setShowKey] = useState(false);
   const [saved, setSaved] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState(null);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [showProviderDropdown, setShowProviderDropdown] = useState(false);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [customModel, setCustomModel] = useState('');
 
   // Detect provider from baseUrl for backward compatibility
-  const detectProvider = (baseUrl) => {
+  const detectProvider = (baseUrl: string): ProviderId => {
     if (baseUrl.includes('anthropic.com')) return 'anthropic';
     if (baseUrl.includes('blackbox.ai')) return 'blackbox';
     return 'custom';
@@ -61,7 +35,7 @@ export default function Options() {
   useEffect(() => {
     chrome.storage.local.get('llmConfig', (result) => {
       if (result.llmConfig) {
-        const merged = { ...DEFAULT_CONFIG, ...result.llmConfig };
+        const merged: LLMConfig = { ...DEFAULT_CONFIG, ...result.llmConfig };
         // Backward compatibility: detect provider if not set
         if (!merged.provider) {
           merged.provider = detectProvider(merged.baseUrl);
@@ -74,7 +48,7 @@ export default function Options() {
     });
   }, []);
 
-  const handleProviderChange = (providerId) => {
+  const handleProviderChange = (providerId: ProviderId) => {
     const provider = PROVIDERS[providerId];
     setConfig({
       ...config,
@@ -86,19 +60,19 @@ export default function Options() {
     setTestResult(null);
   };
 
-  const handleModelChange = (modelId) => {
+  const handleModelChange = (modelId: string) => {
     setConfig({ ...config, model: modelId });
     setShowModelDropdown(false);
     setTestResult(null);
   };
 
-  const handleCustomModelChange = (e) => {
+  const handleCustomModelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const model = e.target.value;
     setCustomModel(model);
     setConfig({ ...config, model });
   };
 
-  const handleCustomBaseUrlChange = (e) => {
+  const handleCustomBaseUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setConfig({ ...config, baseUrl: e.target.value });
     setTestResult(null);
   };
@@ -119,10 +93,10 @@ export default function Options() {
         ? `${config.baseUrl.replace(/\/$/, '')}/v1/messages`
         : `${config.baseUrl.replace(/\/$/, '')}/v1/chat/completions`;
 
-      const headers = {
+      const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      let body;
+      let body: string;
 
       if (isAnthropic) {
         headers['x-api-key'] = config.apiKey;
@@ -146,12 +120,12 @@ export default function Options() {
       if (res.ok) {
         setTestResult({ success: true, message: 'Connection successful! API is responding.' });
       } else {
-        const errData = await res.json().catch(() => ({}));
+        const errData = await res.json().catch(() => ({})) as { error?: { message?: string } };
         const errMsg = errData.error?.message || `HTTP ${res.status}: ${res.statusText}`;
         setTestResult({ success: false, message: errMsg });
       }
     } catch (err) {
-      setTestResult({ success: false, message: `Network error: ${err.message}` });
+      setTestResult({ success: false, message: `Network error: ${err instanceof Error ? err.message : 'Unknown error'}` });
     } finally {
       setTesting(false);
     }
@@ -163,7 +137,7 @@ export default function Options() {
   const dropdownItemClass = "px-4 py-2.5 text-sm text-text-secondary hover:bg-accent/10 hover:text-text-primary cursor-pointer transition-colors";
   const dropdownItemActiveClass = "px-4 py-2.5 text-sm text-accent-light bg-accent/10 cursor-pointer";
 
-  const currentProvider = PROVIDERS[config.provider] || PROVIDERS.custom;
+  const currentProvider: ProviderPreset = PROVIDERS[config.provider] || PROVIDERS.custom;
   const isCustomProvider = config.provider === 'custom';
 
   return (

@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
+import type { ConversationMessage, LLMConfig } from '@/types';
 
 export default function useStreaming() {
   const [isStreaming, setIsStreaming] = useState(false);
-  const abortRef = useRef(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const stopStreaming = useCallback(() => {
     if (abortRef.current) {
@@ -12,20 +13,26 @@ export default function useStreaming() {
     setIsStreaming(false);
   }, []);
 
-  const sendMessage = useCallback(async (messages, config, onChunk, onDone, onError) => {
+  const sendMessage = useCallback(async (
+    messages: ConversationMessage[],
+    config: LLMConfig,
+    onChunk: (text: string) => void,
+    onDone: (text: string | null) => void,
+    onError: (error: string) => void
+  ) => {
     setIsStreaming(true);
     abortRef.current = new AbortController();
 
     try {
       // Use provider field for detection, fallback to URL check for backward compatibility
-      const isAnthropic = config.provider === 'anthropic' || 
+      const isAnthropic = config.provider === 'anthropic' ||
         (!config.provider && config.baseUrl.includes('anthropic'));
       const url = isAnthropic
         ? `${config.baseUrl.replace(/\/$/, '')}/v1/messages`
         : `${config.baseUrl.replace(/\/$/, '')}/v1/chat/completions`;
 
-      const headers = { 'Content-Type': 'application/json' };
-      let body;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      let body: string;
 
       if (isAnthropic) {
         headers['x-api-key'] = config.apiKey;
@@ -55,7 +62,7 @@ export default function useStreaming() {
       });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
+        const errData = await res.json().catch(() => ({})) as { error?: { message?: string } };
         const errMsg = errData.error?.message || `HTTP ${res.status}: ${res.statusText}`;
         if (res.status === 401) throw new Error(`Authentication failed: ${errMsg}`);
         if (res.status === 403) throw new Error(`Access denied: ${errMsg}`);
@@ -63,7 +70,9 @@ export default function useStreaming() {
         throw new Error(errMsg);
       }
 
-      const reader = res.body.getReader();
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('No response body');
+
       const decoder = new TextDecoder();
       let buffer = '';
       let fullText = '';
@@ -82,7 +91,11 @@ export default function useStreaming() {
           if (data === '[DONE]') continue;
 
           try {
-            const parsed = JSON.parse(data);
+            const parsed = JSON.parse(data) as {
+              type?: string;
+              delta?: { text?: string };
+              choices?: Array<{ delta?: { content?: string } }>;
+            };
             let text = '';
 
             if (isAnthropic) {
@@ -105,10 +118,10 @@ export default function useStreaming() {
 
       onDone(fullText);
     } catch (err) {
-      if (err.name === 'AbortError') {
+      if (err instanceof Error && err.name === 'AbortError') {
         onDone(null);
       } else {
-        onError(err.message);
+        onError(err instanceof Error ? err.message : 'Unknown error');
       }
     } finally {
       setIsStreaming(false);

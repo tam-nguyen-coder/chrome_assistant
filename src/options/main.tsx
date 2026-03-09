@@ -1,10 +1,10 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import '../index.css';
-import SidePanel from './SidePanel';
+import Options from './Options';
 
-createRoot(document.getElementById('root')).render(
+createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <SidePanel />
+    <Options />
   </React.StrictMode>
 );

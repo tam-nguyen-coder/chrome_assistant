@@ -1,23 +1,6 @@
 // Background Service Worker — Manifest V3
-
-// Context menu actions
-const CONTEXT_ACTIONS = [
-  { id: 'explain', title: '💡 Explain', prompt: 'Please explain the following text clearly and concisely:\n\n' },
-  { id: 'summarize', title: '📝 Summarize', prompt: 'Please provide a concise summary of the following text:\n\n' },
-  { id: 'rewrite', title: '✍️ Rewrite', prompt: 'Please rewrite the following text to improve clarity and readability:\n\n' },
-  { id: 'translate', title: '🌐 Translate', prompt: 'Please translate the following text to English (or if it is already in English, translate to Vietnamese):\n\n' },
-];
-
-// Register context menus on install
-chrome.runtime.onInstalled.addListener(() => {
-  CONTEXT_ACTIONS.forEach((action) => {
-    chrome.contextMenus.create({
-      id: action.id,
-      title: action.title,
-      contexts: ['selection'],
-    });
-  });
-});
+import { CONTEXT_ACTIONS } from '@/shared/constants';
+import type { ContextActionMessage, PopupActionMessage } from '@/types';
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
@@ -27,7 +10,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   const prompt = action.prompt + `"${info.selectionText}"`;
 
   // Open side panel
-  await chrome.sidePanel.open({ tabId: tab.id });
+  if (tab?.id) {
+    await chrome.sidePanel.open({ tabId: tab.id });
+  }
 
   // Wait a bit for side panel to load, then send message
   setTimeout(() => {
@@ -36,15 +21,26 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       prompt,
       action: action.id,
       selectedText: info.selectionText,
-    });
+    } as ContextActionMessage);
   }, 500);
 });
 
+// Register context menus on install
+chrome.runtime.onInstalled.addListener(() => {
+  CONTEXT_ACTIONS.forEach((action) => {
+    chrome.contextMenus.create({
+      id: action.id,
+      title: action.label,
+      contexts: ['selection'],
+    });
+  });
+});
+
 // Handle popup actions from content script
-chrome.runtime.onMessage.addListener((message, sender) => {
+chrome.runtime.onMessage.addListener((message: PopupActionMessage, sender) => {
   if (message.type === 'POPUP_ACTION') {
     const actionData = {
-      type: 'CONTEXT_ACTION',
+      type: 'CONTEXT_ACTION' as const,
       prompt: message.prompt,
       action: message.action,
       selectedText: message.selectedText,
@@ -65,5 +61,7 @@ chrome.runtime.onMessage.addListener((message, sender) => {
 
 // Open side panel when clicking the extension icon
 chrome.action.onClicked.addListener((tab) => {
-  chrome.sidePanel.open({ tabId: tab.id });
+  if (tab.id) {
+    chrome.sidePanel.open({ tabId: tab.id });
+  }
 });

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect, ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Prism from 'prismjs';
@@ -14,6 +14,12 @@ import 'prismjs/components/prism-sql';
 import 'prismjs/components/prism-yaml';
 import 'prismjs/components/prism-markdown';
 import { Copy, Check, User, Sparkles } from 'lucide-react';
+import type { Message } from '@/types';
+
+interface ChatMessageProps {
+  message: Message;
+  isStreaming: boolean;
+}
 
 function TypingIndicator() {
   return (
@@ -25,9 +31,14 @@ function TypingIndicator() {
   );
 }
 
-function CodeBlock({ children, className }) {
+interface CodeBlockProps {
+  children: string;
+  className?: string;
+}
+
+function CodeBlock({ children, className }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
-  const codeRef = useRef(null);
+  const codeRef = useRef<HTMLElement>(null);
   const lang = className?.replace('language-', '') || '';
 
   useEffect(() => {
@@ -47,7 +58,7 @@ function CodeBlock({ children, className }) {
       <div className="code-block-header">
         <span>{lang || 'code'}</span>
         <button onClick={handleCopy}>
-          {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
@@ -58,7 +69,7 @@ function CodeBlock({ children, className }) {
   );
 }
 
-export default function ChatMessage({ message, isStreaming }) {
+export default function ChatMessage({ message, isStreaming }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
 
@@ -68,16 +79,17 @@ export default function ChatMessage({ message, isStreaming }) {
     setTimeout(() => setCopied(false), 2000);
   }, [message.content]);
 
-  const markdownComponents = useMemo(() => ({
-    pre({ children }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const markdownComponents = useMemo((): any => ({
+    pre({ children }: { children?: ReactNode }) {
       return <pre>{children}</pre>;
     },
-    code({ className, children, ...props }) {
+    code({ className, children }: { className?: string; children?: ReactNode }) {
       const isInline = !className;
       if (isInline) {
-        return <code className={className} {...props}>{children}</code>;
+        return <code className={className}>{children}</code>;
       }
-      return <CodeBlock className={className}>{children}</CodeBlock>;
+      return <CodeBlock className={className}>{String(children)}</CodeBlock>;
     },
   }), []);
 
@@ -86,23 +98,23 @@ export default function ChatMessage({ message, isStreaming }) {
   return (
     <div className={`flex gap-3 animate-fade-in-up ${isUser ? 'flex-row-reverse' : ''}`}>
       {/* Avatar */}
-      <div className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs mt-1 ${
+      <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-xs ${
         isUser
           ? 'bg-gradient-to-br from-accent to-accent-light text-white'
           : 'bg-bg-tertiary border border-border text-accent-light'
       }`}>
-        {isUser ? <User className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+        {isUser ? <User className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
       </div>
 
       {/* Bubble */}
       <div className={`relative max-w-[85%] group ${isUser ? 'ml-auto' : 'mr-auto'}`}>
-        <div className={`px-4 py-3 rounded-2xl text-sm ${
+        <div className={`px-4 py-3.5 rounded-2xl text-[14px] leading-relaxed ${
           isUser
             ? 'bg-gradient-to-br from-accent to-accent-light text-white rounded-tr-md'
             : 'bg-ai-bubble border border-border text-text-primary rounded-tl-md'
         }`}>
           {isUser ? (
-            <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+            <p className="whitespace-pre-wrap">{message.content}</p>
           ) : showTypingIndicator ? (
             <TypingIndicator />
           ) : (
@@ -118,9 +130,9 @@ export default function ChatMessage({ message, isStreaming }) {
         {!isUser && !isStreaming && message.content && (
           <button
             onClick={handleCopy}
-            className="absolute -bottom-6 left-0 flex items-center gap-1 text-xs text-text-muted hover:text-text-primary transition-colors opacity-0 group-hover:opacity-100"
+            className="absolute -bottom-7 left-0 flex items-center gap-1.5 text-xs text-text-muted hover:text-text-primary transition-colors opacity-0 group-hover:opacity-100 py-1"
           >
-            {copied ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+            {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
             {copied ? 'Copied' : 'Copy'}
           </button>
         )}
