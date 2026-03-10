@@ -23,6 +23,15 @@ export const PROVIDERS: Record<string, ProviderPreset> = {
     ],
     defaultModel: 'blackboxai/minimax/minimax-m2.5',
   },
+  openrouter: {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    baseUrl: 'https://openrouter.ai/api',
+    models: [
+      { id: 'auto', name: 'Auto' },
+    ],
+    defaultModel: 'auto',
+  },
   custom: {
     id: 'custom',
     name: 'Custom',

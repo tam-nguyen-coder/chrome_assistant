@@ -1,4 +1,4 @@
-export type ProviderId = 'anthropic' | 'blackbox' | 'custom';
+export type ProviderId = 'anthropic' | 'blackbox' | 'openrouter' | 'custom';
 
 export interface LLMConfig {
   provider: ProviderId;

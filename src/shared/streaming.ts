@@ -51,6 +51,11 @@ export function streamLLMResponse(
                 });
             } else {
                 headers['Authorization'] = `Bearer ${config.apiKey}`;
+                // OpenRouter recommends attribution headers for app identification
+                if (config.provider === 'openrouter') {
+                    headers['HTTP-Referer'] = 'https://github.com/llm-assistant-extension';
+                    headers['X-Title'] = 'LLM Assistant';
+                }
                 body = JSON.stringify({
                     model: config.model,
                     max_tokens: 8192,
