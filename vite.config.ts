@@ -18,35 +18,47 @@ function copyManifestPlugin() {
 }
 
 // Plugin to inline content script dependencies
-function inlineContentDeps() {
+function inlineContentDeps(): import('vite').Plugin {
   return {
     name: 'inline-content-deps',
-    enforce: 'post',
-    generateBundle(options, bundle) {
+    enforce: 'post' as const,
+    generateBundle(_options: unknown, bundle: Record<string, { type: string; code?: string; imports?: string[] }>) {
       // Find the content script chunk
       const contentChunk = bundle['content.js'];
       if (!contentChunk || contentChunk.type !== 'chunk') return;
 
       // Get all the imports from content.js and inline them
       const imports = contentChunk.imports || [];
-      let code = contentChunk.code;
+      let code = contentChunk.code ?? '';
 
       // Replace imports with inlined code
+      // Collect which chunks are imported by OTHER entry points (so we don't delete shared chunks)
+      const usedByOthers = new Set<string>();
+      for (const [name, chunk] of Object.entries(bundle)) {
+        if (name === 'content.js') continue;
+        if (chunk.type === 'chunk' && chunk.imports) {
+          for (const dep of chunk.imports) usedByOthers.add(dep);
+        }
+      }
+
       for (const importName of imports) {
         const depChunk = bundle[importName];
         if (depChunk && depChunk.type === 'chunk') {
           // Prepend the dependency code
-          code = depChunk.code + '\n' + code;
-          // Remove the import statement
-          code = code.replace(new RegExp(`import.*from.*['"]\\.\\./${importName}['"].*;?`, 'g'), '');
-          // Remove the chunk from bundle
-          delete bundle[importName];
+          code = (depChunk.code ?? '') + '\n' + code;
+          // Only delete the chunk if no other entry point needs it
+          if (!usedByOthers.has(importName)) {
+            delete bundle[importName];
+          }
         }
       }
 
-      // Remove import statements
+      // Remove any remaining import statements
       code = code.replace(/import\s*\{[^}]*\}\s*from\s*['"][^'"]+['"]\s*;?/g, '');
       code = code.replace(/import\s+[^;]+\s*from\s*['"][^'"]+['"]\s*;?/g, '');
+      // Remove export statements from inlined chunks (content scripts are classic scripts, not modules)
+      code = code.replace(/export\s*\{[^}]*\}\s*;?/g, '');
+      code = code.replace(/export\s*default\s+/g, '');
 
       contentChunk.code = code;
       contentChunk.imports = [];
@@ -55,7 +67,7 @@ function inlineContentDeps() {
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), copyManifestPlugin()],
+  plugins: [react(), tailwindcss(), inlineContentDeps(), copyManifestPlugin()],
   base: '',
   resolve: {
     alias: {

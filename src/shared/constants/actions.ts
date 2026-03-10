@@ -1,11 +1,17 @@
 import type { AIAction } from '@/types';
+import {
+  EXPLAIN_PROMPT,
+  SUMMARIZE_PROMPT,
+  REWRITE_PROMPT,
+  TRANSLATE_PROMPT,
+} from './prompts';
 
 /** Seed actions — written to storage on first install. All are editable/deletable except Translate (isFixed). */
 export const SEED_ACTIONS: AIAction[] = [
-  { id: 'explain', label: '💡 Explain', prompt: 'Please explain the following text clearly and concisely:\n\n' },
-  { id: 'summarize', label: '📝 Summarize', prompt: 'Please provide a concise summary of the following text:\n\n' },
-  { id: 'rewrite', label: '✍️ Rewrite', prompt: 'Please rewrite the following text to improve clarity and readability:\n\n' },
-  { id: 'translate', label: '🌐 Translate', prompt: 'Please translate the following text to English (or if it is already in English, translate to Vietnamese):\n\n', isFixed: true },
+  { id: 'explain', label: '💡 Explain', prompt: EXPLAIN_PROMPT },
+  { id: 'summarize', label: '📝 Summarize', prompt: SUMMARIZE_PROMPT },
+  { id: 'rewrite', label: '✍️ Rewrite', prompt: REWRITE_PROMPT },
+  { id: 'translate', label: '🌐 Translate', prompt: TRANSLATE_PROMPT, isFixed: true },
 ];
 
 // Backward compatibility — used as inline fallback in content script before storage is loaded
