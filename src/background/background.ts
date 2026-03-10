@@ -1,10 +1,24 @@
 // Background Service Worker — Manifest V3
-import { CONTEXT_ACTIONS } from '@/shared/constants';
-import type { ContextActionMessage, PopupActionMessage } from '@/types';
+import { loadAllActions } from '@/shared/constants';
+import type { AIAction, ContextActionMessage, PopupActionMessage } from '@/types';
+
+/** Register context menus from all actions in storage */
+async function registerContextMenus() {
+  await chrome.contextMenus.removeAll();
+  const actions = await loadAllActions();
+  actions.forEach((action) => {
+    chrome.contextMenus.create({
+      id: action.id,
+      title: action.label,
+      contexts: ['selection'],
+    });
+  });
+}
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  const action = CONTEXT_ACTIONS.find((a) => a.id === info.menuItemId);
+  const actions = await loadAllActions();
+  const action = actions.find((a: AIAction) => a.id === info.menuItemId);
   if (!action || !info.selectionText) return;
 
   const prompt = action.prompt + `"${info.selectionText}"`;
@@ -27,13 +41,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
 // Register context menus on install
 chrome.runtime.onInstalled.addListener(() => {
-  CONTEXT_ACTIONS.forEach((action) => {
-    chrome.contextMenus.create({
-      id: action.id,
-      title: action.label,
-      contexts: ['selection'],
-    });
-  });
+  registerContextMenus();
+});
+
+// Re-register context menus when actions change
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.customActions) {
+    registerContextMenus();
+  }
 });
 
 // Handle popup actions from content script

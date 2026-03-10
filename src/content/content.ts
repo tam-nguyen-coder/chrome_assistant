@@ -135,26 +135,7 @@ const AI_ACTIONS = [
   { id: 'translate', label: '🌐 Translate', prompt: 'Please translate the following text to English (or if it is already in English, translate to Vietnamese):\n\n' },
 ];
 
-// Fallback: directly trigger action when chrome.runtime.sendMessage fails
-function triggerActionDirectly(actionId: string, text: string) {
-  console.log('[LLM] triggerActionDirectly called:', actionId, text);
-  const action = AI_ACTIONS.find(a => a.id === actionId);
-  if (!action || !text) return;
 
-  const prompt = action.prompt + `"${text}"`;
-  const actionData = {
-    type: 'CONTEXT_ACTION' as const,
-    prompt,
-    action: actionId,
-    selectedText: text,
-    timestamp: Date.now(),
-  };
-
-  // Store directly in storage (side panel picks it up via onChanged listener)
-  chrome.storage.local.set({ pendingAction: actionData }, () => {
-    console.log('[LLM] pendingAction stored:', actionData.prompt?.substring(0, 50));
-  });
-}
 
 (() => {
   // ── Inline CSS for Shadow DOM ──
@@ -502,27 +483,34 @@ function triggerActionDirectly(actionId: string, text: string) {
     dropdownEl = document.createElement('div');
     dropdownEl.className = 'llm-dropdown';
 
-    AI_ACTIONS.forEach((action) => {
-      const item = document.createElement('button');
-      item.className = 'llm-dropdown-item';
+    // Load all actions from storage (fallback to hardcoded defaults if empty)
+    chrome.storage.local.get('customActions', (result: { customActions?: typeof AI_ACTIONS }) => {
+      const allActions = (result.customActions && result.customActions.length > 0)
+        ? result.customActions
+        : AI_ACTIONS;
 
-      const emoji = document.createElement('span');
-      emoji.className = 'emoji';
-      emoji.textContent = action.label.split(' ')[0]; // emoji part
+      allActions.forEach((action) => {
+        const item = document.createElement('button');
+        item.className = 'llm-dropdown-item';
 
-      const label = document.createElement('span');
-      label.textContent = action.label.split(' ').slice(1).join(' '); // text part
+        const emoji = document.createElement('span');
+        emoji.className = 'emoji';
+        emoji.textContent = action.label.split(' ')[0]; // emoji part
 
-      item.appendChild(emoji);
-      item.appendChild(label);
+        const label = document.createElement('span');
+        label.textContent = action.label.split(' ').slice(1).join(' '); // text part
 
-      item.addEventListener('click', (e) => {
-        e.stopPropagation();
-        // All dropdown actions (including Translate) go to side panel
-        sendAction(action.id, selectedText);
-        hidePopup();
+        item.appendChild(emoji);
+        item.appendChild(label);
+
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          // All dropdown actions (including Translate) go to side panel
+          sendActionWithPrompt(action.id, action.prompt, selectedText);
+          hidePopup();
+        });
+        dropdownEl?.appendChild(item);
       });
-      dropdownEl?.appendChild(item);
     });
 
     popupEl?.appendChild(dropdownEl);
@@ -669,8 +657,8 @@ function triggerActionDirectly(actionId: string, text: string) {
   function translateInline(text: string, selectionRect: DOMRect, anchorRect: DOMRect) {
     showTooltip(selectionRect, anchorRect);
 
-    // Read LLM config from storage
-    chrome.storage.local.get('llmConfig', (result: { llmConfig?: InlineStreamConfig }) => {
+    // Read LLM config and actions from storage
+    chrome.storage.local.get(['llmConfig', 'customActions'], (result: { llmConfig?: InlineStreamConfig; customActions?: typeof AI_ACTIONS }) => {
       const config = result.llmConfig;
 
       if (!config || !config.apiKey) {
@@ -678,7 +666,9 @@ function triggerActionDirectly(actionId: string, text: string) {
         return;
       }
 
-      const translateAction = AI_ACTIONS.find(a => a.id === 'translate');
+      // Load translate prompt from storage (may be customized), fallback to hardcoded
+      const allActions = (result.customActions && result.customActions.length > 0) ? result.customActions : AI_ACTIONS;
+      const translateAction = allActions.find(a => a.id === 'translate') || AI_ACTIONS.find(a => a.id === 'translate');
       if (!translateAction) return;
 
       const prompt = translateAction.prompt + `"${text}"`;
@@ -712,13 +702,12 @@ function triggerActionDirectly(actionId: string, text: string) {
   //  SEND TO SIDE PANEL (for dropdown actions)
   // ══════════════════════════════════════════════════════
 
-  // ── Send action to background ──
-  function sendAction(actionId: string, text: string) {
-    console.log('[LLM] sendAction called:', actionId, text?.substring(0, 30));
-    const action = AI_ACTIONS.find((a) => a.id === actionId);
-    if (!action || !text) return;
+  // ── Send action to background (with prompt already resolved) ──
+  function sendActionWithPrompt(actionId: string, actionPrompt: string, text: string) {
+    console.log('[LLM] sendActionWithPrompt called:', actionId, text?.substring(0, 30));
+    if (!text) return;
 
-    const prompt = action.prompt + `"${text}"`;
+    const prompt = actionPrompt + `"${text}"`;
     const message = {
       type: 'POPUP_ACTION' as const,
       prompt: prompt,
@@ -731,9 +720,17 @@ function triggerActionDirectly(actionId: string, text: string) {
       chrome.runtime.sendMessage(message);
     } catch {
       // sendMessage failed — fall back to storing directly in storage
-      triggerActionDirectly(actionId, text);
+      const actionData = {
+        type: 'CONTEXT_ACTION' as const,
+        prompt,
+        action: actionId,
+        selectedText: text,
+        timestamp: Date.now(),
+      };
+      chrome.storage.local.set({ pendingAction: actionData });
     }
   }
+
 
   // ══════════════════════════════════════════════════════
   //  EVENT HANDLERS

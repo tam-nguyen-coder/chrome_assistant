@@ -2,6 +2,8 @@ export interface AIAction {
   id: string;
   label: string;
   prompt: string;
+  emoji?: string;
+  isFixed?: boolean;
 }
 
 export interface ContextActionMessage {
